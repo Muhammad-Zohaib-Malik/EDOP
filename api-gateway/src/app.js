@@ -1,9 +1,8 @@
 import express from "express";
 import proxy from "express-http-proxy";
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || 5000;
 const app = express();
 app.use(express.json());
-
 app.get("/", (_, res) => {
   res.send("Health Check");
 });
@@ -38,11 +37,29 @@ app.use(
   }),
 );
 
+// setting up proxy for inventory-service
+app.use(
+  "/v1/products",
+  proxy(process.env.INVENTORY_SERVICE_URL, {
+    ...proxyOptions,
+    proxyReqOptDecorator: (proxyReqOpts, srcReq) => {
+      // Don't force application/json if it's multipart/form-data for file uploads
+      if (!srcReq.headers["content-type"]?.includes("multipart/form-data")) {
+        proxyReqOpts.headers["Content-Type"] = "application/json";
+      }
+      return proxyReqOpts;
+    },
+    userResDecorator: (proxyRes, proxyResData, userReq, userRes) => {
+      console.log("Res Status from Inventory Service:", proxyRes.statusCode);
+      return proxyResData;
+    },
+  }),
+);
+
 const startServer = async () => {
   try {
     app.listen(port, () => {
       console.log(`Api GateWay is running at http://localhost:${port}`);
-      console.log(`Auth Service is running at ${process.env.AUTH_SERVICE_URL}`);
     });
   } catch (error) {
     console.error("Failed to start server:", error);

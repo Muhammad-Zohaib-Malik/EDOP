@@ -4,7 +4,7 @@ import cookieParser from "cookie-parser";
 import userRoutes from "./routes/auth.route.js";
 import { connectDatabase } from "./config/db.js";
 
-const port = process.env.PORT || 3002;
+const port = process.env.PORT || 5001;
 const app = express();
 
 // Middleware to parse JSON

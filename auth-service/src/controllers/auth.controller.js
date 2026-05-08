@@ -65,7 +65,7 @@ export const login = async (req, res) => {
   try {
     // Get user
     const result = await pool.query(
-      "SELECT id, username, email, password FROM users WHERE email = $1",
+      "SELECT id, username, email, password, role FROM users WHERE email = $1",
       [email],
     );
 
@@ -89,6 +89,7 @@ export const login = async (req, res) => {
       id: user.id,
       username: user.username,
       email: user.email,
+      role: user.role,
     };
 
     const accessToken = jwt.sign(payload, JWT_SECRET, {
@@ -146,7 +147,7 @@ export const refresh = async (req, res) => {
 
     // 2. CHECK DATABASE
     const result = await pool.query(
-      `SELECT id, username, email
+      `SELECT id, username, email, role
        FROM users
        WHERE refreshtoken = $1 AND id = $2`,
       [oldRefreshToken, decoded.id],
@@ -164,6 +165,7 @@ export const refresh = async (req, res) => {
       id: user.id,
       username: user.username,
       email: user.email,
+      role: user.role,
     };
 
     const newAccessToken = jwt.sign(payload, JWT_SECRET, {
