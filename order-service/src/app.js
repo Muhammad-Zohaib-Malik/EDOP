@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { connectDatabase } from "./config/db.js";
+import { connectRabbitMQ } from "./config/rabbitmq.js";
 import orderRoutes from "./routes/order.routes.js";
 
 const app = express();
@@ -29,6 +30,7 @@ const PORT = process.env.PORT || 5003;
 const startServer = async () => {
   try {
     await connectDatabase();
+    await connectRabbitMQ();
     app.listen(PORT, () => {
       console.log(`🟢 Order Service running on port ${PORT}`);
     });

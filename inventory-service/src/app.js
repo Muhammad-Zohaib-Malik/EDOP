@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import fs from "fs";
 import { connectDatabase } from "./config/db.js";
+import { connectRabbitMQ } from "./config/rabbitmq.js";
 import productRoutes from "./routes/product.routes.js";
 
 const app = express();
@@ -41,6 +42,7 @@ const PORT = process.env.PORT || 5002;
 const startServer = async () => {
   try {
     await connectDatabase();
+    await connectRabbitMQ();
     app.listen(PORT, () => {
       console.log(`🟢 Inventory Service running on port ${PORT}`);
     });

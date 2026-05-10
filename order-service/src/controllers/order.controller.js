@@ -1,9 +1,6 @@
 import pool from "../config/db.js";
 import { v4 as uuidv4 } from "uuid";
-import axios from "axios";
-
-const INVENTORY_SERVICE_URL = "http://localhost:5002/api/products";
-
+import { publishEvent } from "../config/rabbitmq.js";
 export const checkoutOrder = async (req, res) => {
   const client = await pool.connect();
   try {
@@ -24,13 +21,20 @@ export const checkoutOrder = async (req, res) => {
     let calculatedTotal = 0;
     const validatedItems = [];
 
-    // 1. Verify Prices and Stock via Inventory Service
+    // 1. Verify Prices and Stock via DB
     for (const item of items) {
       try {
-        const response = await axios.get(
-          `${INVENTORY_SERVICE_URL}/${item.productId}`,
-        );
-        const product = response.data.product;
+        const result = await client.query("SELECT * FROM products WHERE id = $1", [
+          item.productId,
+        ]);
+        
+        if (result.rows.length === 0) {
+          return res
+            .status(404)
+            .json({ message: `Product ${item.productId} not found` });
+        }
+        
+        const product = result.rows[0];
 
         if (product.stock < item.quantity) {
           return res.status(400).json({
@@ -50,8 +54,8 @@ export const checkoutOrder = async (req, res) => {
           error.message,
         );
         return res
-          .status(404)
-          .json({ message: `Product ${item.productId} not found` });
+          .status(500)
+          .json({ message: `Error verifying product ${item.productId}` });
       }
     }
 
@@ -79,8 +83,9 @@ export const checkoutOrder = async (req, res) => {
         [uuidv4(), orderId, item.productId, item.quantity, item.verifiedPrice],
       );
 
-      // Reserve stock in Inventory Service via HTTP
-      await axios.post(`${INVENTORY_SERVICE_URL}/${item.productId}/reserve`, {
+      // Reserve stock via RabbitMQ
+      await publishEvent("order.placed", {
+        productId: item.productId,
         quantity: item.quantity,
       });
     }
