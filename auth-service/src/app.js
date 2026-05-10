@@ -7,7 +7,6 @@ import { connectDatabase } from "./config/db.js";
 const port = process.env.PORT || 5001;
 const app = express();
 
-// Middleware to parse JSON
 app.use(express.json());
 app.use(cookieParser());
 app.use(
@@ -28,7 +27,7 @@ const startServer = async () => {
   try {
     await connectDatabase();
     app.listen(port, () => {
-      console.log(`Auth Service is running at http://localhost:${port}`);
+      console.log(`🟢 Auth Service is running at http://localhost:${port}`);
     });
   } catch (error) {
     console.error("Failed to start server:", error);
