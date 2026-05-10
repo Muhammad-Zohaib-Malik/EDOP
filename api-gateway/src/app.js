@@ -1,8 +1,18 @@
 import express from "express";
 import proxy from "express-http-proxy";
+import cors from "cors";
+
 const port = process.env.PORT || 5000;
 const app = express();
+
 app.use(express.json());
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  }),
+);
+
 app.get("/", (_, res) => {
   res.send("Health Check");
 });
@@ -20,7 +30,6 @@ const proxyOptions = {
 };
 
 // setting up proxy for auth-service
-
 app.use(
   "/v1/auth",
   proxy(process.env.AUTH_SERVICE_URL, {
@@ -43,7 +52,6 @@ app.use(
   proxy(process.env.INVENTORY_SERVICE_URL, {
     ...proxyOptions,
     proxyReqOptDecorator: (proxyReqOpts, srcReq) => {
-      // Don't force application/json if it's multipart/form-data for file uploads
       if (!srcReq.headers["content-type"]?.includes("multipart/form-data")) {
         proxyReqOpts.headers["Content-Type"] = "application/json";
       }
@@ -51,6 +59,22 @@ app.use(
     },
     userResDecorator: (proxyRes, proxyResData, userReq, userRes) => {
       console.log("Res Status from Inventory Service:", proxyRes.statusCode);
+      return proxyResData;
+    },
+  }),
+);
+
+// setting up proxy for order-service
+app.use(
+  "/v1/orders",
+  proxy(process.env.ORDER_SERVICE_URL, {
+    ...proxyOptions,
+    proxyReqOptDecorator: (proxyReqOpts, srcReq) => {
+      proxyReqOpts.headers["Content-Type"] = "application/json";
+      return proxyReqOpts;
+    },
+    userResDecorator: (proxyRes, proxyResData, userReq, userRes) => {
+      console.log("Res Status from Order Service:", proxyRes.statusCode);
       return proxyResData;
     },
   }),
