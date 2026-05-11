@@ -1,0 +1,7 @@
+PG_HOST=localhost
+PG_USER=postgres
+PG_PASSWORD=admin
+PG_DATABASE=edop
+PG_PORT=5432
+JWT_SECRET=secretHai
+REFRESH_SECRET=yaiwalabhi
