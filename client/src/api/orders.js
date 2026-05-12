@@ -11,7 +11,3 @@ export const getOrders = () => {
 export const updateOrderStatus = (id, status) => {
   return api.patch(`/orders/${id}/status`, { status });
 };
-
-export const deleteOrder = (id) => {
-  return api.delete(`/orders/${id}`);
-};

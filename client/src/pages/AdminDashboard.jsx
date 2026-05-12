@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { getProducts, createProduct, updateProduct, deleteProduct } from "../api/products";
-import { getOrders, updateOrderStatus, deleteOrder } from "../api/orders";
+import { getOrders, updateOrderStatus } from "../api/orders";
 import ConfirmModal from "../components/ConfirmModal";
 
 const AdminDashboard = () => {
@@ -71,21 +71,6 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleDeleteOrderClick = (orderId) => {
-    setConfirmModal({ isOpen: true, type: 'order', id: orderId });
-  };
-
-  const executeDeleteOrder = async (orderId) => {
-    try {
-      await deleteOrder(orderId);
-      toast.success("Order deleted successfully");
-      setOrders(orders.filter(order => order.id !== orderId));
-    } catch (error) {
-      console.error("Error deleting order:", error);
-      toast.error(error.response?.data?.message || "Failed to delete order");
-    }
-  };
-
   const handleEditClick = (product) => {
     setEditingId(product.id);
     setName(product.name);
@@ -137,8 +122,6 @@ const AdminDashboard = () => {
   const handleConfirmDelete = () => {
     if (confirmModal.type === 'product') {
       executeDeleteProduct(confirmModal.id);
-    } else if (confirmModal.type === 'order') {
-      executeDeleteOrder(confirmModal.id);
     }
     setConfirmModal({ isOpen: false, type: null, id: null });
   };
@@ -352,7 +335,6 @@ const AdminDashboard = () => {
                   <th className="px-6 py-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Amount</th>
                   <th className="px-6 py-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-4 text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-4 text-xs font-medium text-slate-500 uppercase tracking-wider text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -418,14 +400,6 @@ const AdminDashboard = () => {
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-500">
                       {new Date(order.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => handleDeleteOrderClick(order.id)}
-                        className="text-rose-500 hover:text-rose-700 font-semibold text-sm transition-colors"
-                      >
-                        Delete
-                      </button>
                     </td>
                   </tr>
                 ))}

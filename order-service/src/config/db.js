@@ -22,7 +22,8 @@ export const connectDatabase = async () => {
       CREATE TABLE IF NOT EXISTS orders (
         id UUID PRIMARY KEY,
         customer_name TEXT NOT NULL,
-        customer_phone VARCHAR(20),
+        customer_email VARCHAR(255) NOT NULL,
+        customer_phone VARCHAR(20) NOT NULL,
         customer_address TEXT NOT NULL,
         total_amount NUMERIC(10,2) NOT NULL,
         status VARCHAR(20) DEFAULT 'PENDING',

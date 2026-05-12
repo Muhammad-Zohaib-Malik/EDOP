@@ -20,6 +20,7 @@ const CartSidebar = () => {
   const [isCheckoutMode, setIsCheckoutMode] = useState(false);
   const [formData, setFormData] = useState({
     customerName: user?.name || "",
+    customerEmail: user?.email || "",
     customerPhone: "",
     customerAddress: "",
   });
@@ -49,6 +50,17 @@ const CartSidebar = () => {
       return;
     }
 
+    if (!formData.customerEmail) {
+      toast.error("Please enter your email");
+      return;
+    }
+
+    const phoneRegex = /^((\+92)|(0))3[0-9]{9}$/;
+    if (!formData.customerPhone || !phoneRegex.test(formData.customerPhone)) {
+      toast.error("Please enter a valid Pakistani phone number (e.g., 03001234567)");
+      return;
+    }
+
     if (!formData.customerAddress) {
       toast.error("Please enter your delivery address");
       return;
@@ -63,6 +75,7 @@ const CartSidebar = () => {
 
       await checkoutOrder({
         customerName: formData.customerName,
+        customerEmail: formData.customerEmail,
         customerPhone: formData.customerPhone,
         customerAddress: formData.customerAddress,
         items,
@@ -332,7 +345,7 @@ const CartSidebar = () => {
                       >
                         <div className="mb-4">
                           <label className="block font-sans text-sm font-medium text-slate-700 mb-1.5">
-                            Full Name
+                            Full Name <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="text"
@@ -350,10 +363,31 @@ const CartSidebar = () => {
                         </div>
                         <div className="mb-4">
                           <label className="block font-sans text-sm font-medium text-slate-700 mb-1.5">
-                            Phone Number
+                            Email Address <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="email"
+                            required
+                            value={formData.customerEmail}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                customerEmail: e.target.value,
+                              })
+                            }
+                            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6] transition-all font-sans text-sm text-slate-900 placeholder-slate-400"
+                            placeholder="john@example.com"
+                          />
+                        </div>
+                        <div className="mb-4">
+                          <label className="block font-sans text-sm font-medium text-slate-700 mb-1.5">
+                            Phone Number <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="tel"
+                            required
+                            pattern="^((\+92)|(0))3[0-9]{9}$"
+                            title="Please enter a valid Pakistani phone number (e.g., 03001234567 or +923001234567)"
                             value={formData.customerPhone}
                             onChange={(e) =>
                               setFormData({
@@ -362,12 +396,12 @@ const CartSidebar = () => {
                               })
                             }
                             className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-md focus:outline-none focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6] transition-all font-sans text-sm text-slate-900 placeholder-slate-400"
-                            placeholder="+1 234 567 890"
+                            placeholder="03001234567 or +923001234567"
                           />
                         </div>
                         <div className="mb-6">
                           <label className="block font-sans text-sm font-medium text-slate-700 mb-1.5">
-                            Delivery Address
+                            Delivery Address <span className="text-red-500">*</span>
                           </label>
                           <textarea
                             required

@@ -4,7 +4,7 @@ import { publishEvent } from "../config/rabbitmq.js";
 export const checkoutOrder = async (req, res) => {
   const client = await pool.connect();
   try {
-    const { items, customerName, customerPhone, customerAddress } = req.body;
+    const { items, customerName, customerEmail, customerPhone, customerAddress } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ message: "Cart is empty" });
@@ -12,6 +12,10 @@ export const checkoutOrder = async (req, res) => {
 
     if (!customerName) {
       return res.status(400).json({ message: "Customer name is required" });
+    }
+
+    if (!customerEmail) {
+      return res.status(400).json({ message: "Customer email is required" });
     }
 
     if (!customerAddress) {
@@ -27,13 +31,13 @@ export const checkoutOrder = async (req, res) => {
         const result = await client.query("SELECT * FROM products WHERE id = $1", [
           item.productId,
         ]);
-        
+
         if (result.rows.length === 0) {
           return res
             .status(404)
             .json({ message: `Product ${item.productId} not found` });
         }
-        
+
         const product = result.rows[0];
 
         if (product.stock < item.quantity) {
@@ -64,11 +68,12 @@ export const checkoutOrder = async (req, res) => {
     // 2. Create Order in Database
     const orderId = uuidv4();
     await client.query(
-      `INSERT INTO orders (id, customer_name, customer_phone, customer_address, total_amount, status) VALUES ($1, $2, $3, $4, $5, $6)`,
+      `INSERT INTO orders (id, customer_name, customer_email, customer_phone, customer_address, total_amount, status) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [
         orderId,
         customerName,
-        customerPhone || null,
+        customerEmail,
+        customerPhone,
         customerAddress,
         calculatedTotal,
         "PENDING",
@@ -89,6 +94,15 @@ export const checkoutOrder = async (req, res) => {
         quantity: item.quantity,
       });
     }
+
+    // 4. Publish Notification Event
+    await publishEvent("order.notification.placed", {
+      orderId,
+      customerName,
+      customerEmail,
+      totalAmount: calculatedTotal,
+      items: validatedItems,
+    });
 
     await client.query("COMMIT");
 
@@ -168,6 +182,26 @@ export const updateOrderStatus = async (req, res) => {
       return res.status(404).json({ message: "Order not found" });
     }
 
+    if (status.toUpperCase() === "CANCELLED") {
+      const order = result.rows[0];
+      await publishEvent("order.notification.cancelled", {
+        orderId: order.id,
+        customerName: order.customer_name,
+        customerEmail: order.customer_email,
+        totalAmount: order.total_amount,
+      });
+    }
+
+    if (status.toUpperCase() === "DELIVERED") {
+      const order = result.rows[0];
+      await publishEvent("order.notification.delivered", {
+        orderId: order.id,
+        customerName: order.customer_name,
+        customerEmail: order.customer_email,
+        totalAmount: order.total_amount,
+      });
+    }
+
     res.status(200).json({
       message: "Order status updated successfully",
       order: result.rows[0],
@@ -178,22 +212,4 @@ export const updateOrderStatus = async (req, res) => {
   }
 };
 
-export const deleteOrder = async (req, res) => {
-  try {
-    const { id } = req.params;
 
-    const result = await pool.query(
-      `DELETE FROM orders WHERE id = $1 RETURNING id`,
-      [id],
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
-    res.status(200).json({ message: "Order deleted successfully" });
-  } catch (error) {
-    console.error("Delete Order Error:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
