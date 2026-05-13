@@ -1,10 +1,7 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import { initNodemailer } from "./utils/nodemailer.js";
 import { connectRabbitMQ } from "./config/rabbitmq.js";
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5004;

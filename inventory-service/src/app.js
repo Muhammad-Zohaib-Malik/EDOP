@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import fs from "fs";
 import { connectDatabase } from "./config/db.js";
 import { connectRabbitMQ } from "./config/rabbitmq.js";
+import { initProductsIndex } from "./config/elasticsearch.js";
 import productRoutes from "./routes/product.routes.js";
 
 const app = express();
@@ -43,6 +44,7 @@ const startServer = async () => {
   try {
     await connectDatabase();
     await connectRabbitMQ();
+    await initProductsIndex();
     app.listen(PORT, () => {
       console.log(`🟢 Inventory Service running on port ${PORT}`);
     });

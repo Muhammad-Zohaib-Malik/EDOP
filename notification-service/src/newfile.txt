@@ -1,7 +1,0 @@
-PORT=5004
-RABBITMQ_URL=amqp://localhost
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=muhammadzohaibmalik10@gmail.com
-SMTP_PASS=cisp vaum tirs mvct
-EMAIL_FROM="EDOP Ecommerce" <muhammadzohaibmalik10@gmail.com>

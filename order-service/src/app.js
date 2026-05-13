@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import { connectDatabase } from "./config/db.js";
 import { connectRabbitMQ } from "./config/rabbitmq.js";
+import { initOrdersIndex } from "./config/elasticsearch.js";
 import orderRoutes from "./routes/order.routes.js";
 
 const app = express();
@@ -31,6 +32,7 @@ const startServer = async () => {
   try {
     await connectDatabase();
     await connectRabbitMQ();
+    await initOrdersIndex();
     app.listen(PORT, () => {
       console.log(`🟢 Order Service running on port ${PORT}`);
     });
