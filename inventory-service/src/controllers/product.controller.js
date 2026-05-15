@@ -199,10 +199,32 @@ export const searchProducts = async (req, res) => {
       index: "products",
       body: {
         query: {
-          multi_match: {
-            query: q,
-            fields: ["name^2", "description"],
-            fuzziness: "AUTO",
+          bool: {
+            should: [
+              {
+                multi_match: {
+                  query: q,
+                  fields: ["name^3", "description"],
+                  fuzziness: "AUTO",
+                  prefix_length: 1,
+                },
+              },
+              {
+                multi_match: {
+                  query: q,
+                  fields: ["name^2", "description"],
+                  type: "phrase_prefix",
+                },
+              },
+              {
+                query_string: {
+                  query: q.split(/\s+/).map((t) => `*${t}*`).join(" AND "),
+                  fields: ["name^2", "description"],
+                  default_operator: "AND",
+                },
+              },
+            ],
+            minimum_should_match: 1,
           },
         },
       },
