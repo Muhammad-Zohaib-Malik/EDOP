@@ -130,11 +130,15 @@ export const updateOrderStatus = async (req, res) => {
 
     const order = result.rows[0];
 
-    if (status.toUpperCase() === "CANCELLED")
+    if (status.toUpperCase() === "CANCELLED") {
       await publishEvent("order.notification.cancelled", {
         orderId: order.id, customerName: order.customer_name,
         customerEmail: order.customer_email, totalAmount: order.total_amount,
       });
+
+      const itemsRes = await pool.query("SELECT product_id, quantity FROM order_items WHERE order_id=$1", [order.id]);
+      await publishEvent("order.cancelled", { orderId: order.id, items: itemsRes.rows });
+    }
 
     if (status.toUpperCase() === "DELIVERED")
       await publishEvent("order.notification.delivered", {

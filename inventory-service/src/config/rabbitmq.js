@@ -1,5 +1,6 @@
 import amqp from "amqplib";
 import pool from "./db.js";
+import esClient from "./elasticsearch.js";
 
 export const connectRabbitMQ = async () => {
   try {
@@ -15,6 +16,7 @@ export const connectRabbitMQ = async () => {
       durable: true,
     });
     await channel.bindQueue(q.queue, exchange, "order.placed");
+    await channel.bindQueue(q.queue, exchange, "order.cancelled");
 
     console.log(
       "🟢 RabbitMQ connected in Inventory Service. Waiting for messages...",
@@ -23,27 +25,52 @@ export const connectRabbitMQ = async () => {
     channel.consume(q.queue, async (msg) => {
       if (msg !== null) {
         try {
+          const routingKey = msg.fields.routingKey;
           const data = JSON.parse(msg.content.toString());
-          console.log("📥 Received order.placed event:", data);
+          console.log(`📥 Received ${routingKey} event:`, data);
 
-          const { productId, quantity } = data;
+          if (routingKey === "order.placed") {
+            const { productId, quantity } = data;
 
-          if (productId && quantity) {
-            // Reserve stock
-            const result = await pool.query(
-              `UPDATE products 
-               SET stock = stock - $1, version = version + 1 
-               WHERE id = $2 AND stock >= $1 
-               RETURNING *`,
-              [quantity, productId],
-            );
-
-            if (result.rows.length === 0) {
-              console.warn(
-                `⚠️ Failed to reserve stock for ${productId} - Insufficient stock or not found`,
+            if (productId && quantity) {
+              // Reserve stock
+              const result = await pool.query(
+                `UPDATE products 
+                 SET stock = stock - $1, version = version + 1 
+                 WHERE id = $2 AND stock >= $1 
+                 RETURNING *`,
+                [quantity, productId],
               );
-            } else {
-              console.log(`✅ Reserved ${quantity} of product ${productId}`);
+
+              if (result.rows.length === 0) {
+                console.warn(
+                  `⚠️ Failed to reserve stock for ${productId} - Insufficient stock or not found`,
+                );
+              } else {
+                console.log(`✅ Reserved ${quantity} of product ${productId}`);
+                esClient.index({ index: "products", id: result.rows[0].id, document: result.rows[0] }).catch(e => console.error(e));
+              }
+            }
+          } else if (routingKey === "order.cancelled") {
+            const { items } = data;
+            if (items && Array.isArray(items)) {
+              for (const item of items) {
+                const { product_id, quantity } = item;
+                if (product_id && quantity) {
+                  const result = await pool.query(
+                    `UPDATE products 
+                     SET stock = stock + $1, version = version + 1 
+                     WHERE id = $2 
+                     RETURNING *`,
+                    [quantity, product_id],
+                  );
+
+                  if (result.rows.length > 0) {
+                    console.log(`✅ Restored ${quantity} of product ${product_id}`);
+                    esClient.index({ index: "products", id: result.rows[0].id, document: result.rows[0] }).catch(e => console.error(e));
+                  }
+                }
+              }
             }
           }
 
