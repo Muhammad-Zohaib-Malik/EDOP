@@ -184,16 +184,17 @@ export const refresh = async (req, res) => {
       user.id,
     ]);
 
-    // 5. SET COOKIES
     res.cookie("accessToken", newAccessToken, {
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: "none",
+      secure: true,
       maxAge: 1 * 60 * 1000,
     });
 
     res.cookie("refreshToken", newRefreshToken, {
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: "none",
+      secure: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -220,12 +221,14 @@ export const logout = async (req, res) => {
 
   res.clearCookie("accessToken", {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "none",
+    secure: true,
   });
 
   res.clearCookie("refreshToken", {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "none",
+    secure: true,
   });
 
   res.json({ message: "Logged out successfully" });
