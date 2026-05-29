@@ -14,7 +14,7 @@ app.use(
 );
 
 app.get("/", (_, res) => {
-  res.send("Health Check");
+  res.json({message:"Health Check ✅"});
 });
 
 const proxyOptions = {

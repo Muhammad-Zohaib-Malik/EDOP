@@ -19,7 +19,7 @@ app.use(
 app.use("/api/auth", userRoutes);
 
 app.get("/", (req, res) => {
-  res.send("Health Check");
+  res.json({message:"Health Check ✅"});
 });
 
 // Connect to Database and start server
