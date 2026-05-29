@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:5000/v1",
+  baseURL: "https://api-gateway-to6i.onrender.com/v1",
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
