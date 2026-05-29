@@ -1,8 +1,0 @@
-PG_HOST=localhost
-PG_USER=postgres
-PG_PASSWORD=admin
-PG_DATABASE=edop
-PG_PORT=5432
-PORT=5004
-JWT_SECRET=secretHai
-INVENTORY_SERVICE_URL=http://localhost:5003/api/products
