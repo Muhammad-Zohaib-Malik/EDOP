@@ -1,7 +1,7 @@
 import pool from "../config/db.js";
 import { v4 as uuidv4 } from "uuid";
-import fs from "fs";
 import esClient from "../config/elasticsearch.js";
+import { deleteImageFromCloudinary } from "../utils/cloudinary.util.js";
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 
@@ -23,8 +23,7 @@ const deleteFromIndex = (id) =>
 
 export const createProduct = async (req, res) => {
   try {
-    const { name, description, stock, price } = req.body;
-    const picture = req.file?.filename ?? null;
+    const { name, description, stock, price, picture } = req.body;
     const id = uuidv4();
 
     const result = await pool.query(
@@ -74,7 +73,7 @@ export const getProductById = async (req, res) => {
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, stock, price } = req.body;
+    const { name, description, stock, price, picture: newPicture } = req.body;
 
     const existing = await pool.query("SELECT * FROM products WHERE id = $1", [
       id,
@@ -83,10 +82,11 @@ export const updateProduct = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
 
     let picture = existing.rows[0].picture;
-    if (req.file) {
-      picture = req.file.filename;
-      if (existing.rows[0].picture)
-        fs.unlink(`uploads/${existing.rows[0].picture}`, () => {});
+    if (newPicture && newPicture !== existing.rows[0].picture) {
+      picture = newPicture;
+      if (existing.rows[0].picture) {
+        await deleteImageFromCloudinary(existing.rows[0].picture);
+      }
     }
 
     const result = await pool.query(
@@ -117,8 +117,9 @@ export const deleteProduct = async (req, res) => {
     if (!existing.rows.length)
       return res.status(404).json({ message: "Product not found" });
 
-    if (existing.rows[0].picture)
-      fs.unlink(`uploads/${existing.rows[0].picture}`, () => {});
+    if (existing.rows[0].picture) {
+      await deleteImageFromCloudinary(existing.rows[0].picture);
+    }
 
     await pool.query("DELETE FROM products WHERE id=$1", [id]);
     deleteFromIndex(id);
