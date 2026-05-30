@@ -25,6 +25,7 @@ app.get("/health", (req, res) =>
   res.status(200).json({ status: "Order service is running" }),
 );
 
+
 const PORT = process.env.PORT || 5003;
 
 // Connect to Database and start server
