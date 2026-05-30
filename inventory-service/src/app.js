@@ -33,7 +33,7 @@ app.use("/api/products", productRoutes);
 
 // Health check
 app.get("/health", (req, res) =>
-  res.status(200).json({ status: "Notification service is running" }),
+  res.status(200).json({ status: "Inventory service is running" }),
 );
 
 const PORT = process.env.PORT || 5002;
