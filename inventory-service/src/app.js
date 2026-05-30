@@ -32,8 +32,8 @@ app.use("/uploads", express.static(uploadsDir));
 app.use("/api/products", productRoutes);
 
 // Health check
-app.get("/", (req, res) =>
-  res.status(200).json({ status: "Inventory service is running" }),
+app.get("/health", (req, res) =>
+  res.status(200).json({ status: "Notification service is running" }),
 );
 
 const PORT = process.env.PORT || 5002;

@@ -13,9 +13,9 @@ app.use(
   }),
 );
 
-app.get("/", (_, res) => {
-  res.json({message:"Health Check ✅"});
-});
+app.get("/health", (req, res) =>
+  res.status(200).json({ status: "Api-Gateway service is running" }),
+);
 
 const proxyOptions = {
   proxyReqPathResolver: (req) => {
