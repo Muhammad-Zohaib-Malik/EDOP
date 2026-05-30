@@ -18,9 +18,9 @@ app.use(
 
 app.use("/api/auth", userRoutes);
 
-app.get("/", (req, res) => {
-  res.json({message:"Health Check ✅"});
-});
+app.get("/health", (req, res) =>
+  res.status(200).json({ status: "Auth service is running" }),
+);
 
 // Connect to Database and start server
 const startServer = async () => {
