@@ -25,7 +25,22 @@ export const connectRabbitMQ = async () => {
     channel.consume(q.queue, async (msg) => {
       if (msg !== null) {
         const routingKey = msg.fields.routingKey;
-        const data = JSON.parse(msg.content.toString());
+        const contentStr = msg.content.toString();
+
+        if (!contentStr) {
+          console.warn(`⚠️ Received empty message for routing key: ${routingKey}`);
+          channel.ack(msg);
+          return;
+        }
+
+        let data;
+        try {
+          data = JSON.parse(contentStr);
+        } catch (parseError) {
+          console.error(`❌ Failed to parse JSON for routing key ${routingKey}:`, contentStr);
+          channel.ack(msg);
+          return;
+        }
 
         console.log(`Received event: ${routingKey}`);
 
