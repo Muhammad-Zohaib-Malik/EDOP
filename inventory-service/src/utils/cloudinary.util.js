@@ -8,30 +8,19 @@ export const uploadToCloudinary = async (fileData, folder = "inventory") => {
       folder: folder,
     });
     console.log(`Successfully uploaded image to Cloudinary: ${result.secure_url}`);
-    return result.secure_url;
+    return { url: result.secure_url, publicId: result.public_id };
   } catch (error) {
     console.error("Cloudinary upload error:", error);
     return null;
   }
 };
 
-export const deleteImageFromCloudinary = async (imageUrl) => {
-  if (!imageUrl) return null;
+export const deleteImageFromCloudinary = async (publicId) => {
+  if (!publicId) return null;
   try {
-    // Regex to extract the public_id from a Cloudinary URL
-    // It handles URLs with or without the version number (e.g. /v1234567/)
-    const regex = /\/upload\/(?:v\d+\/)?([^\.]+)/;
-    const match = imageUrl.match(regex);
-    
-    if (match && match[1]) {
-      const publicId = match[1];
-      const result = await cloudinary.uploader.destroy(publicId);
-      console.log(`Successfully deleted image from Cloudinary: ${publicId}`);
-      return result;
-    } else {
-      console.warn(`Could not extract public_id from Cloudinary URL: ${imageUrl}`);
-      return null;
-    }
+    const result = await cloudinary.uploader.destroy(publicId);
+    console.log(`Successfully deleted image from Cloudinary: ${publicId}`);
+    return result;
   } catch (error) {
     console.error("Cloudinary deletion error:", error);
     return null;

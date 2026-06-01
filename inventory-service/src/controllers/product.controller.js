@@ -1,7 +1,11 @@
+import fs from "fs";
 import pool from "../config/db.js";
 import { v4 as uuidv4 } from "uuid";
 import esClient from "../config/elasticsearch.js";
-import { deleteImageFromCloudinary } from "../utils/cloudinary.util.js";
+import {
+  uploadToCloudinary,
+  deleteImageFromCloudinary,
+} from "../utils/cloudinary.util.js";
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 
@@ -23,13 +27,31 @@ const deleteFromIndex = (id) =>
 
 export const createProduct = async (req, res) => {
   try {
-    const { name, description, stock, price, picture } = req.body;
+    const { name, description, stock, price } = req.body;
     const id = uuidv4();
 
+    // Upload image to Cloudinary from multer temp file
+    let pictureUrl = null;
+    let picturePublicId = null;
+    if (req.file) {
+      const uploaded = await uploadToCloudinary(req.file.path);
+      // Remove temp file from server regardless of upload result
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error("Failed to delete temp file:", err.message);
+      });
+      if (!uploaded) {
+        return res
+          .status(400)
+          .json({ message: "Failed to upload image to Cloudinary" });
+      }
+      pictureUrl = uploaded.url;
+      picturePublicId = uploaded.publicId;
+    }
+
     const result = await pool.query(
-      `INSERT INTO products (id, name, description, stock, price, picture)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [id, name, description, stock, price, picture],
+      `INSERT INTO products (id, name, description, stock, price, picture, picture_public_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [id, name, description, stock, price, pictureUrl, picturePublicId],
     );
 
     indexProduct(result.rows[0]);
@@ -39,6 +61,8 @@ export const createProduct = async (req, res) => {
       product: result.rows[0],
     });
   } catch (error) {
+    // Clean up temp file on error
+    if (req.file) fs.unlink(req.file.path, () => {});
     console.error("Create Product Error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
@@ -73,26 +97,42 @@ export const getProductById = async (req, res) => {
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, stock, price, picture: newPicture } = req.body;
+    const { name, description, stock, price } = req.body;
 
     const existing = await pool.query("SELECT * FROM products WHERE id = $1", [
       id,
     ]);
-    if (!existing.rows.length)
+    if (!existing.rows.length) {
+      if (req.file) fs.unlink(req.file.path, () => {});
       return res.status(404).json({ message: "Product not found" });
+    }
 
     let picture = existing.rows[0].picture;
-    if (newPicture && newPicture !== existing.rows[0].picture) {
-      picture = newPicture;
-      if (existing.rows[0].picture) {
-        await deleteImageFromCloudinary(existing.rows[0].picture);
+    let picturePublicId = existing.rows[0].picture_public_id;
+    if (req.file) {
+      // Upload new image to Cloudinary from multer temp file
+      const uploaded = await uploadToCloudinary(req.file.path);
+      // Remove temp file from server
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error("Failed to delete temp file:", err.message);
+      });
+      if (!uploaded) {
+        return res
+          .status(400)
+          .json({ message: "Failed to upload new image to Cloudinary" });
       }
+      // Delete old image from Cloudinary
+      if (picturePublicId) {
+        await deleteImageFromCloudinary(picturePublicId);
+      }
+      picture = uploaded.url;
+      picturePublicId = uploaded.publicId;
     }
 
     const result = await pool.query(
-      `UPDATE products SET name=$1, description=$2, stock=$3, price=$4, picture=$5, version=version+1
-       WHERE id=$6 RETURNING *`,
-      [name, description, stock, price, picture, id],
+      `UPDATE products SET name=$1, description=$2, stock=$3, price=$4, picture=$5, picture_public_id=$6, version=version+1
+       WHERE id=$7 RETURNING *`,
+      [name, description, stock, price, picture, picturePublicId, id],
     );
 
     indexProduct(result.rows[0]);
@@ -102,6 +142,8 @@ export const updateProduct = async (req, res) => {
       product: result.rows[0],
     });
   } catch (error) {
+    // Clean up temp file on error
+    if (req.file) fs.unlink(req.file.path, () => {});
     console.error("Update Product Error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
@@ -111,14 +153,14 @@ export const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
     const existing = await pool.query(
-      "SELECT picture FROM products WHERE id=$1",
+      "SELECT picture, picture_public_id FROM products WHERE id=$1",
       [id],
     );
     if (!existing.rows.length)
       return res.status(404).json({ message: "Product not found" });
 
-    if (existing.rows[0].picture) {
-      await deleteImageFromCloudinary(existing.rows[0].picture);
+    if (existing.rows[0].picture_public_id) {
+      await deleteImageFromCloudinary(existing.rows[0].picture_public_id);
     }
 
     await pool.query("DELETE FROM products WHERE id=$1", [id]);
@@ -219,7 +261,10 @@ export const searchProducts = async (req, res) => {
               },
               {
                 query_string: {
-                  query: q.split(/\s+/).map((t) => `*${t}*`).join(" AND "),
+                  query: q
+                    .split(/\s+/)
+                    .map((t) => `*${t}*`)
+                    .join(" AND "),
                   fields: ["name^2", "description"],
                   default_operator: "AND",
                 },

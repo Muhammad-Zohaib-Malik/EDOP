@@ -6,10 +6,10 @@ const pool = new pg.Pool({
   // password: process.env.PG_PASSWORD,
   // database: process.env.PG_DATABASE,
   // port: process.env.PG_PORT,
-  connectionString:process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL,
   ssl: {
-    rejectUnauthorized: false
-  }
+    rejectUnauthorized: false,
+  },
 });
 
 export const connectDatabase = async () => {
@@ -32,9 +32,15 @@ export const connectDatabase = async () => {
         stock INTEGER NOT NULL CHECK (stock >= 0),
         price NUMERIC(10,2) NOT NULL,
         picture VARCHAR(255),
+        picture_public_id VARCHAR(255),
         version INTEGER DEFAULT 1,
         created_at TIMESTAMP DEFAULT NOW()
       )
+    `);
+
+    // Add column for existing tables
+    await client.query(`
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS picture_public_id VARCHAR(255)
     `);
 
     console.log("🟢 Database schema locked & ready");

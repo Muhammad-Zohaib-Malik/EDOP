@@ -10,7 +10,11 @@ import {
   searchProducts,
 } from "../controllers/product.controller.js";
 import { verifyAdmin } from "../middlewares/auth.middleware.js";
+import upload from "../utils/multer.util.js";
+
 const router = express.Router();
+
+// ── Routes ─────────────────────────────────────────────────────────────────────
 
 // Search must be before /:id so "search" isn't treated as an id
 router.get("/search", searchProducts);
@@ -20,8 +24,8 @@ router.get("/:id", getProductById);
 router.post("/:id/reserve", verifyAdmin, reserveStock);
 router.patch("/:id/stock", verifyAdmin, updateStock);
 
-router.post("/", verifyAdmin, createProduct);
-router.put("/:id", verifyAdmin, updateProduct);
+router.post("/", verifyAdmin, upload.single("picture"), createProduct);
+router.put("/:id", verifyAdmin, upload.single("picture"), updateProduct);
 router.delete("/:id", verifyAdmin, deleteProduct);
 
 export default router;
