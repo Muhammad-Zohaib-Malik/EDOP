@@ -28,7 +28,7 @@ export const initNodemailer = async () => {
     }
   } catch (error) {
     console.error("Failed to initialize Nodemailer:", error);
-    process.exit(1);
+    // Don't exit the process, allow the server to start even if email fails
   }
 };
 
