@@ -24,6 +24,7 @@ export const connectRabbitMQ = async () => {
     await channel.bindQueue(q.queue, exchange, "order.notification.placed");
     await channel.bindQueue(q.queue, exchange, "order.notification.cancelled");
     await channel.bindQueue(q.queue, exchange, "order.notification.delivered");
+    await channel.bindQueue(q.queue, exchange, "order.notification.paid");
 
     console.log("🟢 RabbitMQ connected in Notification Service");
 
@@ -184,18 +185,64 @@ export const connectRabbitMQ = async () => {
     </div>
     `,
             );
+          } else if (routingKey === "order.notification.paid") {
+            const { orderId, customerName, customerEmail, totalAmount } = data;
+
+            await sendEmail(
+              customerEmail,
+              "💳 Payment Successful - EDOP",
+              `Hi ${customerName}, payment for your order ${orderId} was successful.`,
+              `
+    <div style="font-family: Arial, sans-serif; background:#f6f9fc; padding:20px;">
+      <div style="max-width:600px; margin:auto; background:#ffffff; border-radius:10px; overflow:hidden; border:1px solid #eee;">
+
+        <div style="background:#10b981; color:#fff; padding:20px; text-align:center;">
+          <h1 style="margin:0;">Payment Successful 💳</h1>
+        </div>
+
+        <div style="padding:20px; color:#333;">
+          <p>Hi <strong>${customerName}</strong>,</p>
+
+          <p>We've successfully received your payment. Your order is now being processed!</p>
+
+          <div style="background:#f1f5f9; padding:15px; border-radius:8px; margin:20px 0;">
+            <p style="margin:5px 0;"><strong>Order ID:</strong> ${orderId}</p>
+            <p style="margin:5px 0;"><strong>Amount Paid:</strong> PKR: ${totalAmount}</p>
+          </div>
+
+          <p>We will let you know once it ships.</p>
+
+          <p style="margin-top:20px;">Thank you for shopping with <strong>EDOP</strong> ❤️</p>
+        </div>
+
+        <div style="text-align:center; padding:15px; font-size:12px; color:#888;">
+          © ${new Date().getFullYear()} EDOP. All rights reserved.
+        </div>
+
+      </div>
+    </div>
+    `,
+            );
           }
 
           // Only ack AFTER email was sent successfully
           channel.ack(msg);
           console.log(`✅ Processed and acked: ${routingKey}`);
         } catch (emailError) {
-          // Email failed — requeue the message so it can be retried
           console.error(
             `❌ Failed to send email for ${routingKey}:`,
             emailError.message,
           );
-          channel.nack(msg, false, true);
+          
+          // If the error is a missing API key, there's no point in requeuing immediately
+          // because it will just fail again in an infinite loop. 
+          // We will reject and NOT requeue it (or you could send it to a dead-letter queue).
+          if (emailError.message.includes("SendGrid API key not initialized")) {
+            channel.nack(msg, false, false);
+          } else {
+            // For other transient errors (like network issues), requeue it
+            channel.nack(msg, false, true);
+          }
         }
       }
     });

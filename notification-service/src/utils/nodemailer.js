@@ -1,50 +1,44 @@
-import nodemailer from "nodemailer";
-import dns from "dns";
+import sgMail from "@sendgrid/mail";
 
-// Force Node.js to use IPv4 instead of IPv6 for DNS resolution
-// This fixes the 'ENETUNREACH 2607:f8b0:...' error on Render and other cloud providers
-// that don't have properly configured outbound IPv6 routing.
-dns.setDefaultResultOrder("ipv4first");
-
-let transporter;
-
+// We keep the old function name 'initNodemailer' so we don't break app.js,
+// but now it just initializes SendGrid.
 export const initNodemailer = async () => {
   try {
-    transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || "smtp.gmail.com",
-      port: parseInt(process.env.SMTP_PORT) || 587,
-      secure: process.env.SMTP_PORT === "465", // true for 465, false for other ports
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      tls: {
-        rejectUnauthorized: false
-      }
-    });
-    console.log("🟢 Nodemailer transporter initialized");
+    const apiKey = process.env.SENDGRID_API_KEY;
+    if (!apiKey) {
+      console.warn("⚠️ SENDGRID_API_KEY is not set in environment variables.");
+    } else {
+      sgMail.setApiKey(apiKey);
+      console.log("🟢 SendGrid initialized successfully");
+    }
   } catch (error) {
-    console.error("Failed to initialize Nodemailer:", error);
+    console.error("Failed to initialize SendGrid:", error);
     process.exit(1);
   }
 };
 
 export const sendEmail = async (to, subject, text, html) => {
-  if (!transporter) {
-    throw new Error("Nodemailer transporter not initialized");
+  if (!process.env.SENDGRID_API_KEY) {
+    throw new Error("SendGrid API key not initialized. Please set SENDGRID_API_KEY.");
   }
-  const info = await transporter.sendMail({
-    from: process.env.EMAIL_FROM || `"EDOP Ecommerce" <${process.env.SMTP_USER}>`,
+
+  const msg = {
     to,
+    from: process.env.EMAIL_FROM || "no-reply@yourdomain.com", // This MUST be a verified sender in SendGrid
     subject,
     text,
     html,
-  });
-  console.log(`📧 Message sent: ${info.messageId}`);
+  };
 
-  const previewUrl = nodemailer.getTestMessageUrl(info);
-  if (previewUrl) {
-    console.log(`Preview URL: ${previewUrl}`);
+  try {
+    const response = await sgMail.send(msg);
+    console.log(`📧 Message sent via SendGrid! Status: ${response[0].statusCode}`);
+  } catch (error) {
+    console.error("Failed to send email via SendGrid:");
+    if (error.response) {
+      console.error(error.response.body);
+    }
+    throw error;
   }
 };
 
