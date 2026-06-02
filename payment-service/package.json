@@ -1,0 +1,22 @@
+{
+  "name": "payment-service",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node --env-file=.env --watch src/app.js",
+    "start": "node --watch src/app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "amqplib": "^2.0.1",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "pg": "^8.21.0",
+    "stripe": "^22.2.0",
+    "uuid": "^14.0.0"
+  }
+}
