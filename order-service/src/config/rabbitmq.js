@@ -4,9 +4,7 @@ let channel;
 
 export const connectRabbitMQ = async () => {
   try {
-    const connection = await amqp.connect(
-      process.env.RABBITMQ_URL,
-    );
+    const connection = await amqp.connect(process.env.RABBITMQ_URL);
     channel = await connection.createChannel();
     await channel.assertExchange("order_events", "topic", { durable: true });
     console.log("🟢 RabbitMQ connected in Order Service");
@@ -25,5 +23,6 @@ export const publishEvent = async (routingKey, data) => {
     "order_events",
     routingKey,
     Buffer.from(JSON.stringify(data)),
+    { persistent: true },
   );
 };

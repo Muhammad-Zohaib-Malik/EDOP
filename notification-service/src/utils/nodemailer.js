@@ -24,25 +24,21 @@ export const initNodemailer = async () => {
 };
 
 export const sendEmail = async (to, subject, text, html) => {
-  try {
-    if (!transporter) {
-      console.error("Nodemailer transporter not initialized");
-      return;
-    }
-    const info = await transporter.sendMail({
-      from: process.env.EMAIL_FROM || `"EDOP Ecommerce" <${process.env.SMTP_USER}>`,
-      to,
-      subject,
-      text,
-      html,
-    });
-    console.log(`📧 Message sent: ${info.messageId}`);
-    
-    const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) {
-      console.log(`Preview URL: ${previewUrl}`);
-    }
-  } catch (error) {
-    console.error("Failed to send email:", error);
+  if (!transporter) {
+    throw new Error("Nodemailer transporter not initialized");
+  }
+  const info = await transporter.sendMail({
+    from: process.env.EMAIL_FROM || `"EDOP Ecommerce" <${process.env.SMTP_USER}>`,
+    to,
+    subject,
+    text,
+    html,
+  });
+  console.log(`📧 Message sent: ${info.messageId}`);
+
+  const previewUrl = nodemailer.getTestMessageUrl(info);
+  if (previewUrl) {
+    console.log(`Preview URL: ${previewUrl}`);
   }
 };
+
