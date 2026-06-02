@@ -80,6 +80,27 @@ app.use(
   }),
 );
 
+// setting up proxy for payment-service
+app.use(
+  "/v1/payment",
+  proxy(process.env.PAYMENT_SERVICE_URL, {
+    ...proxyOptions,
+    // Payment service needs raw body for webhook, so we don't force JSON here
+    // for all routes, but we can do it for non-webhook routes if necessary.
+    // The payment-service app.js handles body parsing correctly.
+    proxyReqOptDecorator: (proxyReqOpts, srcReq) => {
+      if (!srcReq.originalUrl.includes('/webhook')) {
+         proxyReqOpts.headers["Content-Type"] = "application/json";
+      }
+      return proxyReqOpts;
+    },
+    userResDecorator: (proxyRes, proxyResData, userReq, userRes) => {
+      console.log("Res Status from Payment Service:", proxyRes.statusCode);
+      return proxyResData;
+    },
+  }),
+);
+
 const startServer = async () => {
   try {
     app.listen(port, () => {
