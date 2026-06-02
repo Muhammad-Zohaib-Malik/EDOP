@@ -234,10 +234,10 @@ export const connectRabbitMQ = async () => {
             emailError.message,
           );
           
-          // If the error is a missing API key, there's no point in requeuing immediately
+          // If the error is a missing configuration, there's no point in requeuing immediately
           // because it will just fail again in an infinite loop. 
           // We will reject and NOT requeue it (or you could send it to a dead-letter queue).
-          if (emailError.message.includes("SendGrid API key not initialized")) {
+          if (emailError.message.includes("Nodemailer not initialized")) {
             channel.nack(msg, false, false);
           } else {
             // For other transient errors (like network issues), requeue it

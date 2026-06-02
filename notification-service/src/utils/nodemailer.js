@@ -1,44 +1,55 @@
-import sgMail from "@sendgrid/mail";
+import nodemailer from "nodemailer";
 
-// We keep the old function name 'initNodemailer' so we don't break app.js,
-// but now it just initializes SendGrid.
+let transporter;
+
 export const initNodemailer = async () => {
   try {
-    const apiKey = process.env.SENDGRID_API_KEY;
-    if (!apiKey) {
-      console.warn("⚠️ SENDGRID_API_KEY is not set in environment variables.");
+    const host = process.env.SMTP_HOST;
+    const port = process.env.SMTP_PORT || 587;
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+
+    if (!host || !user || !pass) {
+      console.warn("⚠️ SMTP credentials are not fully set in environment variables.");
     } else {
-      sgMail.setApiKey(apiKey);
-      console.log("🟢 SendGrid initialized successfully");
+      transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure: port == 465, // true for 465, false for other ports
+        auth: {
+          user,
+          pass,
+        },
+      });
+      
+      // verify connection configuration
+      await transporter.verify();
+      console.log("🟢 Nodemailer initialized successfully");
     }
   } catch (error) {
-    console.error("Failed to initialize SendGrid:", error);
+    console.error("Failed to initialize Nodemailer:", error);
     process.exit(1);
   }
 };
 
 export const sendEmail = async (to, subject, text, html) => {
-  if (!process.env.SENDGRID_API_KEY) {
-    throw new Error("SendGrid API key not initialized. Please set SENDGRID_API_KEY.");
+  if (!transporter) {
+    throw new Error("Nodemailer not initialized. Please check SMTP credentials.");
   }
 
-  const msg = {
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || "no-reply@yourdomain.com",
     to,
-    from: process.env.EMAIL_FROM || "no-reply@yourdomain.com", // This MUST be a verified sender in SendGrid
     subject,
     text,
     html,
   };
 
   try {
-    const response = await sgMail.send(msg);
-    console.log(`📧 Message sent via SendGrid! Status: ${response[0].statusCode}`);
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`📧 Message sent via Nodemailer! Message ID: ${info.messageId}`);
   } catch (error) {
-    console.error("Failed to send email via SendGrid:");
-    if (error.response) {
-      console.error(error.response.body);
-    }
+    console.error("Failed to send email via Nodemailer:", error);
     throw error;
   }
 };
-
