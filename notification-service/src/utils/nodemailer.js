@@ -1,4 +1,10 @@
 import nodemailer from "nodemailer";
+import dns from "dns";
+
+// Force Node.js to use IPv4 instead of IPv6 for DNS resolution
+// This fixes the 'ENETUNREACH 2607:f8b0:...' error on Render and other cloud providers
+// that don't have properly configured outbound IPv6 routing.
+dns.setDefaultResultOrder("ipv4first");
 
 let transporter;
 
