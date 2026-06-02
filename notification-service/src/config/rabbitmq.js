@@ -1,5 +1,5 @@
 import amqp from "amqplib";
-import { sendEmail } from "../utils/nodemailer.js";
+import { sendEmail } from "../utils/email.js";
 
 let channel;
 
@@ -237,7 +237,7 @@ export const connectRabbitMQ = async () => {
           // If the error is a missing configuration, there's no point in requeuing immediately
           // because it will just fail again in an infinite loop. 
           // We will reject and NOT requeue it (or you could send it to a dead-letter queue).
-          if (emailError.message.includes("Nodemailer not initialized")) {
+          if (emailError.message.includes("RESEND_API_KEY not initialized")) {
             channel.nack(msg, false, false);
           } else {
             // For other transient errors (like network issues), requeue it

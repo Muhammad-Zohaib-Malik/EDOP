@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { initNodemailer } from "./utils/nodemailer.js";
+import { initEmailService } from "./utils/email.js";
 import { connectRabbitMQ } from "./config/rabbitmq.js";
 
 const app = express();
@@ -28,7 +28,7 @@ const startServer = async () => {
     
     // Initialize background services after server is up
     try {
-      await initNodemailer();
+      initEmailService();
       await connectRabbitMQ();
     } catch (error) {
       console.error("Failed to initialize background services:", error);
