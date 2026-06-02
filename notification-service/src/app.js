@@ -22,16 +22,18 @@ app.get("/health", (req, res) =>
 
 // Connect and start server
 const startServer = async () => {
-  try {
-    await initNodemailer();
-    await connectRabbitMQ();
-    app.listen(PORT, () => {
-      console.log(`🟢 Notification Service running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error("Failed to start server:", error);
-    process.exit(1);
-  }
+  // Bind the port immediately so Render doesn't time out
+  app.listen(PORT, "0.0.0.0", async () => {
+    console.log(`🟢 Notification Service running on port ${PORT}`);
+    
+    // Initialize background services after server is up
+    try {
+      await initNodemailer();
+      await connectRabbitMQ();
+    } catch (error) {
+      console.error("Failed to initialize background services:", error);
+    }
+  });
 };
 
 startServer();
