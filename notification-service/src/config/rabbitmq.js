@@ -8,6 +8,16 @@ export const connectRabbitMQ = async () => {
     const connection = await amqp.connect(
       process.env.RABBITMQ_URL || "amqp://localhost",
     );
+
+    connection.on("error", (err) => {
+      console.error("RabbitMQ connection error:", err);
+    });
+
+    connection.on("close", () => {
+      console.error("RabbitMQ connection closed. Exiting to trigger restart...");
+      process.exit(1);
+    });
+
     channel = await connection.createChannel();
 
     // Only process one message at a time — don't grab more until acked

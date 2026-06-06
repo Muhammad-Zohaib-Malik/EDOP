@@ -4,11 +4,19 @@ EDOP is a modern, scalable e-commerce platform built using a microservices archi
 
 ## Table of Contents
 
+- [Tech Stack](#tech-stack)
 - [Architecture](#architecture)
 - [Microservices Overview](#microservices-overview)
 - [Prerequisites](#prerequisites)
 - [How to Run the Project](#how-to-run-the-project)
 - [Environment Variables (.env Structure)](#environment-variables-env-structure)
+
+## Tech Stack
+- **Backend**: Node.js, Express.js
+- **Database**: PostgreSQL (Relational Data)
+- **Search Engine**: Elasticsearch (High-performance search/filtering)
+- **Message Broker**: RabbitMQ (Asynchronous Event-Driven Architecture)
+- **Third-Party Integrations**: Stripe (Payments), Resend (Emails)
 
 ## Architecture
 
