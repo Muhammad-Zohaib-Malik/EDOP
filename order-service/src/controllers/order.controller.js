@@ -171,11 +171,32 @@ export const searchOrders = async (req, res) => {
 
     if (q) {
       must.push({
-        multi_match: {
-          query: q,
-          fields: ["customer_name^3", "customer_email", "customer_address", "items.product_name^2"],
-          fuzziness: "AUTO",
-          prefix_length: 1,
+        bool: {
+          should: [
+            {
+              multi_match: {
+                query: q,
+                fields: ["customer_name^3", "customer_email", "customer_address", "items.product_name^2"],
+                fuzziness: "AUTO",
+                prefix_length: 1,
+              },
+            },
+            {
+              multi_match: {
+                query: q,
+                fields: ["customer_name^2", "customer_email", "customer_address", "items.product_name"],
+                type: "phrase_prefix",
+              },
+            },
+            {
+              query_string: {
+                query: q.split(/\s+/).map((t) => `*${t}*`).join(" AND "),
+                fields: ["customer_name^2", "customer_email", "customer_address", "items.product_name"],
+                default_operator: "AND",
+              },
+            },
+          ],
+          minimum_should_match: 1,
         },
       });
     }
